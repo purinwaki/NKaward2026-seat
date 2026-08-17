@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>座席検索アプリ</title>
+  <style>
+    body { font-family: 'Helvetica Neue', Arial, sans-serif; text-align: center; background-color: #f7f9fc; color: #333; padding: 40px 20px; margin: 0; }
+    .container { max-width: 400px; margin: 0 auto; background: white; padding: 30px 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+    h2 { color: #2c3e50; margin-top: 0; font-size: 22px; }
+    p { font-size: 14px; color: #666; margin-bottom: 20px; }
+    input { font-size: 16px; padding: 14px; width: 100%; border-radius: 8px; border: 1px solid #ddd; box-sizing: border-box; margin-bottom: 15px; outline: none; transition: border 0.3s; }
+    input:focus { border: 1px solid #3498db; }
+    button { font-size: 16px; padding: 14px; border-radius: 8px; background-color: #3498db; color: white; border: none; cursor: pointer; font-weight: bold; width: 100%; transition: background 0.3s; }
+    button:hover { background-color: #2980b9; }
+    #result { margin-top: 25px; font-size: 20px; font-weight: bold; line-height: 1.5; padding: 20px; border-radius: 8px; display: none; }
+    .seat-label { font-size: 13px; font-weight: normal; display: block; margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>📱 座席検索</h2>
+    <p>お名前（名字）を入力してください</p>
+    <input type="text" id="nameInput" placeholder="例：春山">
+    <button onclick="searchSeat()">座席を探す</button>
+    <div id="result"></div>
+  </div>
+
+  <script>
+    // 💡 座席表.csvから抽出したデータ（全171名分）
+    const seatData = [
+      { name: "御園生", seat: "【DR】⑫" },
+      { name: "中村", seat: "【DR】⑬" },
+      { name: "角田", seat: "【DR】⑫" },
+      { name: "金", seat: "【DR】⑬" },
+      { name: "三木", seat: "【DR】⑫" },
+      { name: "承子", seat: "【DR】⑬" },
+      { name: "村田", seat: "【DR】⑫" },
+      { name: "高川", seat: "【DR】⑬" },
+      { name: "佐々木", seat: "【DR】⑫" },
+      { name: "村松", seat: "【DR】⑬" },
+      { name: "松原", seat: "【DR】⑫" },
+      { name: "小野", seat: "【DR】⑬" },
+      { name: "目時", seat: "【DR】⑫" },
+      { name: "翔", seat: "【DR】⑬" },
+      { name: "岡田", seat: "【DR】⑫" },
+      { name: "あやの", seat: "【DR】⑬" },
+      { name: "加茂", seat: "【DR】⑬" },
+      { name: "西垣", seat: "【DR】⑬" },
+      { name: "春山", seat: "【外科NS】①(ES係)" },
+      { name: "北山", seat: "【外科NS】⑧" },
+      { name: "大隈", seat: "【外科NS】⑪" },
+      { name: "宮崎", seat: "【外科NS】⑱" },
+      { name: "田中未", seat: "【外科NS】①(ES係)" },
+      { name: "奥田", seat: "【外科NS】⑧" },
+      { name: "さくら", seat: "【外科NS】⑪" },
+      { name: "山村", seat: "【外科NS】⑱" },
+      { name: "なほ", seat: "【外科NS】①(ES係)" },
+      { name: "堂下", seat: "【外科NS】⑧" },
+      { name: "大村", seat: "【外科NS】⑪" },
+      { name: "穴澤", seat: "【外科NS】⑱" },
+      { name: "ゆうな", seat: "【外科NS】①(ES係)" },
+      { name: "吉野", seat: "【外科NS】⑧" },
+      { name: "村杉", seat: "【外科NS】⑪" },
+      { name: "むむ", seat: "【外科NS】⑱" },
+      { name: "木村", seat: "【外科NS】①(ES係)" },
+      { name: "ふじもん", seat: "【外科NS】⑧" },
+      { name: "石井", seat: "【外科NS】⑪" },
+      { name: "山本", seat: "【外科NS】⑱" },
+      { name: "あすか", seat: "【外科NS】①(ES係)" },
+      { name: "荒川", seat: "【外科NS】⑧" },
+      { name: "沖", seat: "【外科NS】⑪" },
+      { name: "山田千", seat: "【外科NS】⑱" },
+      { name: "吉積", seat: "【外科NS】①(ES係)" },
+      { name: "野深", seat: "【外科NS】⑧" },
+      { name: "田中", seat: "【外科NS】⑪" },
+      { name: "渡辺", seat: "【外科NS】⑱" },
+      { name: "宮本", seat: "【外科NS】①(ES係)" },
+      { name: "吉本", seat: "【外科NS】⑧" },
+      { name: "名倉→横田", seat: "【外科NS】⑪" },
+      { name: "小田知", seat: "【外科NS】⑱" },
+      { name: "小西", seat: "【外科NS】①(ES係)" },
+      { name: "峯岸", seat: "【外科NS】⑧" },
+      { name: "新井", seat: "【外科NS】⑪" },
+      { name: "水野", seat: "【外科NS】⑱" },
+      { name: "稲田", seat: "【外科NS】①(ES係)" },
+      { name: "守", seat: "【外科NS】⑧" },
+      { name: "宮原", seat: "【外科NS】⑪" },
+      { name: "稲垣", seat: "【外科受付】②(ES)" },
+      { name: "吉井", seat: "【外科受付】⑤(A＆N＆MM)" },
+      { name: "佐々木", seat: "【外科受付】⑨(CPP＆通訳)" },
+      { name: "小野塚", seat: "【外科受付】⑭（S＆婦人科）" },
+      { name: "真代", seat: "【外科受付】⑳(若＆新卒)" },
+      { name: "脇元", seat: "【外科受付】②(ES)" },
+      { name: "上村", seat: "【外科受付】⑤(A＆N＆MM)" },
+      { name: "尾花", seat: "【外科受付】⑨(CPP＆通訳)" },
+      { name: "大原", seat: "【外科受付】⑭（S＆婦人科）" },
+      { name: "都築", seat: "【外科受付】⑳(若＆新卒)" },
+      { name: "とても", seat: "【外科受付】②(ES)" },
+      { name: "望月", seat: "【外科受付】⑤(A＆N＆MM)" },
+      { name: "谷野", seat: "【外科受付】⑨(CPP＆通訳)" },
+      { name: "勢納", seat: "【外科受付】⑭（S＆婦人科）" },
+      { name: "松原", seat: "【外科受付】⑳(若＆新卒)" },
+      { name: "飴田", seat: "【外科受付】②(ES)" },
+      { name: "田島", seat: "【外科受付】⑤(A＆N＆MM)" },
+      { name: "菜々", seat: "【外科受付】⑨(CPP＆通訳)" },
+      { name: "野上", seat: "【外科受付】⑭（S＆婦人科）" },
+      { name: "丸山", seat: "【外科受付】⑳(若＆新卒)" },
+      { name: "亜希", seat: "【外科受付】②(ES)" },
+      { name: "割田", seat: "【外科受付】⑤(A＆N＆MM)" },
+      { name: "後藤", seat: "【外科受付】⑨(CPP＆通訳)" },
+      { name: "小泉", seat: "【外科受付】⑭（S＆婦人科）" },
+      { name: "めい", seat: "【外科受付】⑳(若＆新卒)" },
+      { name: "吉藤", seat: "【外科受付】②(ES)" },
+      { name: "平岡", seat: "【外科受付】⑤(A＆N＆MM)" },
+      { name: "愛美", seat: "【外科受付】⑨(CPP＆通訳)" },
+      { name: "星奈", seat: "【外科受付】⑭（S＆婦人科）" },
+      { name: "村山", seat: "【外科受付】⑳(若＆新卒)" },
+      { name: "山田", seat: "【外科受付】②(ES)" },
+      { name: "横手", seat: "【外科受付】⑤(A＆N＆MM)" },
+      { name: "木下", seat: "【外科受付】⑨(CPP＆通訳)" },
+      { name: "紗良", seat: "【外科受付】⑭（S＆婦人科）" },
+      { name: "宮地", seat: "【外科受付】⑳(若＆新卒)" },
+      { name: "杏奈", seat: "【外科受付】②(ES)" },
+      { name: "瀧本", seat: "【外科受付】⑤(A＆N＆MM)" },
+      { name: "大嶋", seat: "【外科受付】⑨(CPP＆通訳)" },
+      { name: "森", seat: "【外科受付】⑭（S＆婦人科）" },
+      { name: "竹井", seat: "【外科受付】⑳(若＆新卒)" },
+      { name: "桑原", seat: "【外科受付】⑤(A＆N＆MM)" },
+      { name: "セイブン", seat: "【外科受付】⑨(CPP＆通訳)" },
+      { name: "藤田", seat: "【外科受付】⑳(若＆新卒)" },
+      { name: "楊", seat: "【外科受付】⑨(CPP＆通訳)" },
+      { name: "王", seat: "【外科受付】⑨(CPP＆通訳)" },
+      { name: "淺海拓真", seat: "【皮膚科ＮＳ】④" },
+      { name: "青木祐里子", seat: "【皮膚科ＮＳ】⑩" },
+      { name: "赤坂仁那", seat: "【皮膚科ＮＳ】⑮" },
+      { name: "石川実歩", seat: "【皮膚科ＮＳ】④" },
+      { name: "薄井実祐", seat: "【皮膚科ＮＳ】⑩" },
+      { name: "霞上菜々子", seat: "【皮膚科ＮＳ】⑮" },
+      { name: "小野嘉子", seat: "【皮膚科ＮＳ】④" },
+      { name: "大貫佑弥", seat: "【皮膚科ＮＳ】⑩" },
+      { name: "久渡七海", seat: "【皮膚科ＮＳ】⑮" },
+      { name: "朔樹美香", seat: "【皮膚科ＮＳ】④" },
+      { name: "斉藤万実", seat: "【皮膚科ＮＳ】⑩" },
+      { name: "久保知佳", seat: "【皮膚科ＮＳ】⑮" },
+      { name: "坂本英里佳", seat: "【皮膚科ＮＳ】④" },
+      { name: "信太萌子", seat: "【皮膚科ＮＳ】⑩" },
+      { name: "佐々木翠", seat: "【皮膚科ＮＳ】⑮" },
+      { name: "髙山理子", seat: "【皮膚科ＮＳ】④" },
+      { name: "菅夏実", seat: "【皮膚科ＮＳ】⑩" },
+      { name: "豊永彩歌", seat: "【皮膚科ＮＳ】⑮" },
+      { name: "田中香帆", seat: "【皮膚科ＮＳ】④" },
+      { name: "菅原夕莉奈", seat: "【皮膚科ＮＳ】⑩" },
+      { name: "仁見瑠南", seat: "【皮膚科ＮＳ】⑮" },
+      { name: "保坂綾平", seat: "【皮膚科ＮＳ】④" },
+      { name: "髙橋侑花", seat: "【皮膚科ＮＳ】⑩" },
+      { name: "藤森咲菜", seat: "【皮膚科ＮＳ】⑮" },
+      { name: "森本実怜", seat: "【皮膚科ＮＳ】④" },
+      { name: "田野桜愛", seat: "【皮膚科ＮＳ】⑩" },
+      { name: "山田朱莉", seat: "【皮膚科ＮＳ】⑮" },
+      { name: "吉田明加", seat: "【皮膚科ＮＳ】④" },
+      { name: "畑中唯奈", seat: "【皮膚科ＮＳ】⑩" },
+      { name: "渡辺颯人", seat: "【皮膚科ＮＳ】⑮" },
+      { name: "宮本絵里", seat: "【皮膚科ＮＳ】④" },
+      { name: "牧雛那", seat: "【皮膚科ＮＳ】⑩" },
+      { name: "大殿美紅", seat: "【皮膚科ＮＳ】⑮" },
+      { name: "桒原悠人", seat: "【皮膚科ＮＳ】④" },
+      { name: "吉田安寿菜", seat: "【皮膚科ＮＳ】⑩" },
+      { name: "重巣玲花", seat: "【皮膚科ＮＳ】⑮" },
+      { name: "日向寺篤基", seat: "【皮膚科ＮＳ】⑩" },
+      { name: "荒井優実", seat: "【皮膚科受付】③" },
+      { name: "池田杏奈", seat: "【皮膚科受付】⑥" },
+      { name: "石曽根淳", seat: "【皮膚科受付】⑦" },
+      { name: "伊原正稀", seat: "【皮膚科受付】③" },
+      { name: "石田梨麻", seat: "【皮膚科受付】⑥" },
+      { name: "奥田佑愛", seat: "【皮膚科受付】⑦" },
+      { name: "柏原亜希子", seat: "【皮膚科受付】③" },
+      { name: "上原一彩", seat: "【皮膚科受付】⑥" },
+      { name: "片山瑞稀", seat: "【皮膚科受付】⑦" },
+      { name: "金城麻緒", seat: "【皮膚科受付】③" },
+      { name: "大久保舞香", seat: "【皮膚科受付】⑥" },
+      { name: "兼近典佳", seat: "【皮膚科受付】⑦" },
+      { name: "黒沢愛美", seat: "【皮膚科受付】③" },
+      { name: "川村寧々", seat: "【皮膚科受付】⑥" },
+      { name: "亀山夏美", seat: "【皮膚科受付】⑦" },
+      { name: "佐藤ひさみ", seat: "【皮膚科受付】③" },
+      { name: "下島朋音", seat: "【皮膚科受付】⑥" },
+      { name: "平﨑萌子", seat: "【皮膚科受付】⑦" },
+      { name: "中島佳奈", seat: "【皮膚科受付】③" },
+      { name: "平井理奈", seat: "【皮膚科受付】⑥" },
+      { name: "堀内実菜美", seat: "【皮膚科受付】⑦" },
+      { name: "酒井恵", seat: "【皮膚科受付】③" },
+      { name: "山川稚理", seat: "【皮膚科受付】⑥" },
+      { name: "山本沙織", seat: "【皮膚科受付】⑦" },
+      { name: "永松潤那", seat: "【皮膚科受付】③" },
+      { name: "山下千佳香", seat: "【皮膚科受付】⑥" },
+      { name: "與安百夏", seat: "【皮膚科受付】⑦" },
+      { name: "正影陽菜", seat: "【皮膚科受付】③" },
+      { name: "遊佐優理", seat: "【皮膚科受付】⑥" },
+      { name: "渡邉舞", seat: "【皮膚科受付】⑦" },
+      { name: "松本遥花", seat: "【皮膚科受付】③" },
+      { name: "宮村妃奈乃", seat: "【皮膚科受付】③" }
+    ];
+
+    function searchSeat() {
+      const input = document.getElementById("nameInput").value.trim();
+      const resultDiv = document.getElementById("result");
+      
+      if (!input) {
+        resultDiv.style.display = "block";
+        resultDiv.innerHTML = "名前を入力してください";
+        resultDiv.style.backgroundColor = "#f2f2f2";
+        resultDiv.style.color = "#333";
+        return;
+      }
+
+      const results = seatData.filter(data => data.name.includes(input));
+
+      resultDiv.style.display = "block";
+      if (results.length > 0) {
+        const seatText = results.map(r => r.seat).join(" / ");
+        resultDiv.innerHTML = `<span class="seat-label">あなたの座席は</span>${seatText} <br><span style="font-size:14px; font-weight:normal;">です！</span>`;
+        resultDiv.style.backgroundColor = "#e8f8f5";
+        resultDiv.style.color = "#1abc9c";
+      } else {
+        resultDiv.innerHTML = "見つかりませんでした。<br><span style='font-size:14px; font-weight:normal;'>別の読み方で試すか、スタッフにお声がけください。</span>";
+        resultDiv.style.backgroundColor = "#fdf0ed";
+        resultDiv.style.color = "#e74c3c";
+      }
+    }
+  </script>
+</body>
+</html>
